@@ -925,10 +925,34 @@
       report.backendSynced = true;
       report.backendError = null;
     }catch(err){
-      report.backendSynced = false;
-      report.backendError = err.message;
+      // Apps Script responses go through a redirect hop that sometimes loses CORS
+      // headers on mobile browsers, causing fetch() to reject even though the POST
+      // already reached the server and wrote the row. Before declaring failure,
+      // check whether the report actually made it in.
+      const confirmed = await checkReportExistsInBackend_(report.id).catch(()=>false);
+      if(confirmed){
+        report.backendSynced = true;
+        report.backendError = null;
+      }else{
+        report.backendSynced = false;
+        report.backendError = err.message;
+      }
     }
     saveData(data);
+  }
+
+  async function checkReportExistsInBackend_(reportId){
+    if(!backendSettings.url) return false;
+    for(let attempt = 0; attempt < 3; attempt++){
+      if(attempt > 0) await new Promise(r=>setTimeout(r, 1500));
+      try{
+        const res = await fetch(backendSettings.url + "?t=" + Date.now());
+        if(!res.ok) continue;
+        const json = await res.json();
+        if((json.reports || []).some(r => r.id === reportId)) return true;
+      }catch(e){ /* try again */ }
+    }
+    return false;
   }
 
   async function fetchReportsFromBackend(){
