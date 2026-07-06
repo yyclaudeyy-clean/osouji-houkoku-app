@@ -804,14 +804,24 @@
   // ---------- Google Drive integration ----------
   const GOOGLE_STORAGE_KEY = "cleaningReportApp_google";
   const GOOGLE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+  // Pre-configured for this deployment (yyclaudeyy-clean.github.io). Client ID and API key
+  // are safe to ship in client-side code by design (OAuth public client + Picker key
+  // restricted to Google Picker API only). Override in the 設定 tab if needed.
+  const DEFAULT_GOOGLE_SETTINGS = {
+    clientId: "811075229125-0kpaq99ad49pc81ei5a3nk742nnsvr34.apps.googleusercontent.com",
+    apiKey: "AIzaSyDOA0V8bleL79R-q5zkJIsT_o7GttAXc28",
+    rootFolder: "清掃報告写真"
+  };
   let googleSettings = loadGoogleSettings();
   let accessToken = null;
   let tokenClient = null;
   let pickerApiLoaded = false;
 
   function loadGoogleSettings(){
-    try{ return JSON.parse(localStorage.getItem(GOOGLE_STORAGE_KEY) || "{}"); }
-    catch(e){ return {}; }
+    try{
+      const saved = JSON.parse(localStorage.getItem(GOOGLE_STORAGE_KEY) || "{}");
+      return { ...DEFAULT_GOOGLE_SETTINGS, ...saved };
+    }catch(e){ return { ...DEFAULT_GOOGLE_SETTINGS }; }
   }
   function saveGoogleSettings(s){
     localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify(s));
