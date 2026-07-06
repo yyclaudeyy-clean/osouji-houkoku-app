@@ -334,6 +334,17 @@
   <!-- 設定・Google連携 -->
   <section id="view-settings" class="view">
     <div class="card">
+      <h2>報告の自動共有（ログイン不要）</h2>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 10px;">
+        設定済みのため、清掃員の方は何もしなくても、報告を送信するだけで自動的にオーナーのスプレッドシートに集約されます。ログインは不要です。
+      </p>
+      <label>共有バックエンドURL</label>
+      <input type="text" id="backend-url" placeholder="https://script.google.com/macros/s/xxxx/exec">
+      <button class="btn secondary" id="backend-save">設定を保存</button>
+      <button class="btn secondary" id="backend-fetch">🔄 最新の報告を取得（他の端末の分も反映）</button>
+    </div>
+
+    <div class="card">
       <h2>Google Drive連携</h2>
       <p style="font-size:13px;color:var(--muted);margin:0 0 10px;">
         連携すると、スプレッドシートから物件情報を取り込んだり、清掃写真を物件ごとのフォルダへ自動アップロードできます（任意機能・設定しなくてもアプリは使えます）。
@@ -626,13 +637,18 @@
     renderPhotoPreview();
     renderChecklistForSelectedProperty();
 
-    if(accessToken && report.photos.length > 0){
-      showToast("清掃報告を送信しました ✅（Driveへアップロード中…）");
-      syncReportPhotosToDrive(report).then(()=>{
-        showToast(report.driveSynced ? "Driveへの保存が完了しました ☁️" : "Driveへのアップロードに失敗しました");
+    showToast("清掃報告を送信しました ✅");
+
+    if(backendSettings.url){
+      sendReportToBackend(report).then(()=>{
+        renderReportsList();
       });
-    }else{
-      showToast("清掃報告を送信しました ✅");
+    }
+
+    if(accessToken && report.photos.length > 0){
+      syncReportPhotosToDrive(report).then(()=>{
+        renderReportsList();
+      });
     }
   });
 
@@ -673,13 +689,20 @@
           ? `<span class="badge complete">☁️ Drive保存済み</span>`
           : `<span class="badge incomplete">☁️ 未アップロード</span>`;
       }
+      let backendBadge = "";
+      if(r.backendSynced !== undefined){
+        backendBadge = r.backendSynced
+          ? `<span class="badge complete">📊 共有済み</span>`
+          : `<span class="badge incomplete">📊 未共有</span>`;
+      }
+      const photoCount = (r.photos && r.photos.length) || (r.driveLinks && r.driveLinks.length) || 0;
       div.innerHTML = `
         <div class="top">
           <div class="prop-name">${escapeHtml(r.propertyName)}</div>
           <div class="date">${fmtDate(r.date)}</div>
         </div>
-        <div class="meta" style="font-size:12px;color:var(--muted);margin-top:4px;">担当: ${escapeHtml(r.staffName)} ・ 写真 ${r.photos.length}枚</div>
-        ${badge} ${driveBadge}
+        <div class="meta" style="font-size:12px;color:var(--muted);margin-top:4px;">担当: ${escapeHtml(r.staffName)} ・ 写真 ${photoCount}枚</div>
+        ${badge} ${driveBadge} ${backendBadge}
       `;
       div.addEventListener("click", ()=>openReportModal(r.id));
       wrap.appendChild(div);
@@ -697,17 +720,25 @@
       const checked = r.checklistState && r.checklistState[idx];
       return `<div class="checklist-item"><span>${checked? "✅":"⬜️"}</span><span>${escapeHtml(label)}</span></div>`;
     }).join("");
-    const photosHtml = r.photos.map(src=>`<div class="photo-thumb"><img src="${src}"></div>`).join("");
-    const needsDriveRetry = r.photos.length > 0 && !r.driveSynced;
+    let photosHtml = "";
+    if(r.photos && r.photos.length > 0){
+      photosHtml = r.photos.map(src=>`<div class="photo-thumb"><img src="${src}"></div>`).join("");
+    }else if(r.driveLinks && r.driveLinks.length > 0){
+      photosHtml = r.driveLinks.map((link,i)=>`<div class="meta" style="margin-top:4px;"><a href="${link}" target="_blank" rel="noopener" style="color:var(--primary);">📷 写真${i+1}を開く</a></div>`).join("");
+    }
+    const needsDriveRetry = r.photos && r.photos.length > 0 && !r.driveSynced;
+    const needsBackendRetry = r.backendSynced === false;
     body.innerHTML = `
       <button class="close-modal" id="close-modal">×</button>
       <h3>${escapeHtml(r.propertyName)}</h3>
       <div class="sub">${fmtDate(r.date)} ・ 担当: ${escapeHtml(r.staffName)}</div>
       ${checklistHtml ? `<label>チェックリスト</label><div class="card" style="box-shadow:none;border:1px solid var(--border);">${checklistHtml}</div>` : ""}
       ${r.comment ? `<label>コメント</label><div class="card" style="box-shadow:none;border:1px solid var(--border);font-size:13px;">${escapeHtml(r.comment)}</div>` : ""}
-      ${photosHtml ? `<label>写真</label><div class="photo-grid">${photosHtml}</div>` : ""}
+      ${photosHtml ? `<label>写真</label><div class="photo-grid" style="display:block;">${photosHtml}</div>` : ""}
       ${r.driveError ? `<div class="meta" style="color:var(--danger);font-size:12px;margin-top:8px;">Driveエラー: ${escapeHtml(r.driveError)}</div>` : ""}
+      ${r.backendError ? `<div class="meta" style="color:var(--danger);font-size:12px;margin-top:8px;">共有エラー: ${escapeHtml(r.backendError)}</div>` : ""}
       ${needsDriveRetry ? `<button class="btn secondary" id="retry-drive-upload">☁️ Driveへアップロードする</button>` : ""}
+      ${needsBackendRetry ? `<button class="btn secondary" id="retry-backend-sync">📊 もう一度共有する</button>` : ""}
       <button class="btn danger" id="delete-report">この報告を削除</button>
     `;
     overlay.classList.add("active");
@@ -727,6 +758,16 @@
         retryBtn.disabled = true;
         retryBtn.textContent = "アップロード中...";
         await syncReportPhotosToDrive(r);
+        openReportModal(reportId);
+        renderReportsList();
+      });
+    }
+    const retryBackendBtn = document.getElementById("retry-backend-sync");
+    if(retryBackendBtn){
+      retryBackendBtn.addEventListener("click", async ()=>{
+        retryBackendBtn.disabled = true;
+        retryBackendBtn.textContent = "共有中...";
+        await sendReportToBackend(r);
         openReportModal(reportId);
         renderReportsList();
       });
@@ -829,6 +870,106 @@
     return String(str ?? "").replace(/[&<>"']/g, m=>({
       "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
     }[m]));
+  }
+
+  // ---------- Shared backend (Apps Script, no login required) ----------
+  const BACKEND_STORAGE_KEY = "cleaningReportApp_backend";
+  const DEFAULT_BACKEND_URL = "https://script.google.com/macros/s/AKfycbxI50LMmVQ67KgiGOZOwJBvesCAPWe0zJOWl3hXXQr6Lec3SV7QZxwDTAtcsR7Q_uVx/exec";
+
+  function loadBackendSettings(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(BACKEND_STORAGE_KEY) || "{}");
+      return { url: saved.url || DEFAULT_BACKEND_URL };
+    }catch(e){ return { url: DEFAULT_BACKEND_URL }; }
+  }
+  function saveBackendSettings(s){
+    localStorage.setItem(BACKEND_STORAGE_KEY, JSON.stringify(s));
+  }
+  let backendSettings = loadBackendSettings();
+
+  function initBackendSettingsUI(){
+    document.getElementById("backend-url").value = backendSettings.url || "";
+  }
+
+  document.getElementById("backend-save").addEventListener("click", ()=>{
+    backendSettings.url = document.getElementById("backend-url").value.trim();
+    saveBackendSettings(backendSettings);
+    showToast("設定を保存しました");
+  });
+
+  document.getElementById("backend-fetch").addEventListener("click", fetchReportsFromBackend);
+
+  async function sendReportToBackend(report){
+    if(!backendSettings.url){ report.backendSynced = undefined; return; }
+    try{
+      const payload = {
+        id: report.id,
+        propertyName: report.propertyName,
+        staffName: report.staffName,
+        date: report.date,
+        checklistLabels: report.checklistLabels || [],
+        checklistState: report.checklistState || {},
+        comment: report.comment || "",
+        photos: report.photos || []
+      };
+      const res = await fetch(backendSettings.url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok) throw new Error("送信失敗 (" + res.status + ")");
+      const json = await res.json().catch(()=>null);
+      if(json && json.photoLinks && json.photoLinks.length){
+        report.driveLinks = json.photoLinks;
+      }
+      report.backendSynced = true;
+      report.backendError = null;
+    }catch(err){
+      report.backendSynced = false;
+      report.backendError = err.message;
+    }
+    saveData(data);
+  }
+
+  async function fetchReportsFromBackend(){
+    if(!backendSettings.url){ showToast("共有バックエンドURLが設定されていません"); return; }
+    try{
+      const res = await fetch(backendSettings.url);
+      if(!res.ok) throw new Error("取得失敗 (" + res.status + ")");
+      const json = await res.json();
+      let added = 0, skipped = 0;
+      (json.reports || []).forEach(row=>{
+        if(!row.id) return;
+        if(data.reports.some(r=>r.id === row.id)){ skipped++; return; }
+        let checklistLabels = [], checklistState = {};
+        try{
+          const parsed = JSON.parse(row.checklistJson || "{}");
+          checklistLabels = parsed.labels || [];
+          checklistState = parsed.state || {};
+        }catch(e){ /* ignore */ }
+        const photoLinks = String(row.photoLinks || "").split(" ").filter(Boolean);
+        data.reports.push({
+          id: row.id,
+          propertyName: row.propertyName,
+          staffName: row.staffName,
+          date: row.date,
+          createdAt: row.createdAt,
+          checklistLabels,
+          checklistState,
+          comment: row.comment || "",
+          photos: [],
+          driveLinks: photoLinks,
+          driveSynced: photoLinks.length > 0,
+          backendSynced: true
+        });
+        added++;
+      });
+      saveData(data);
+      renderReportsList();
+      showToast(`取得完了：新規${added}件（重複${skipped}件はスキップ）`);
+    }catch(err){
+      alert("取得に失敗しました: " + err.message);
+    }
   }
 
   // ---------- Google Drive integration ----------
@@ -1151,6 +1292,7 @@
   refreshPropertySelects();
   renderPropList();
   initGoogleSettingsUI();
+  initBackendSettingsUI();
   setTimeout(setupTokenClient, 800); // give the async GIS script a moment to load
 })();
 </script>
