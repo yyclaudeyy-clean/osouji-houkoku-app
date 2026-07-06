@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おそうじ報告 | 民泊清掃報告アプリ</title>
+<style>
+  :root{
+    --primary:#0f8b8d;
+    --primary-dark:#0b6b6c;
+    --accent:#ff8a5c;
+    --bg:#f4f7f7;
+    --card:#ffffff;
+    --text:#22343a;
+    --muted:#6b7c80;
+    --border:#e1e8e8;
+    --danger:#e0554f;
+    --ok:#2e9e5b;
+    --radius:14px;
+    --shadow:0 2px 10px rgba(15,60,60,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding-bottom:70px;
+  }
+  header.app-header{
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    color:#fff;
+    padding:18px 16px 14px;
+    position:sticky;
+    top:0;
+    z-index:20;
+    box-shadow:var(--shadow);
+  }
+  header.app-header h1{
+    margin:0;
+    font-size:19px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  header.app-header p{
+    margin:4px 0 0;
+    font-size:12px;
+    opacity:0.85;
+  }
+  nav.tabs{
+    display:flex;
+    background:#fff;
+    border-bottom:1px solid var(--border);
+    position:sticky;
+    top:64px;
+    z-index:19;
+  }
+  nav.tabs button{
+    flex:1;
+    border:none;
+    background:none;
+    padding:12px 4px;
+    font-size:13px;
+    color:var(--muted);
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    font-weight:600;
+  }
+  nav.tabs button.active{
+    color:var(--primary-dark);
+    border-bottom-color:var(--primary);
+  }
+  main{
+    max-width:640px;
+    margin:0 auto;
+    padding:16px;
+  }
+  section.view{ display:none; }
+  section.view.active{ display:block; }
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .card h2{
+    margin:0 0 12px;
+    font-size:16px;
+    color:var(--primary-dark);
+  }
+  label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--muted);
+    margin:10px 0 4px;
+  }
+  input[type=text], input[type=date], select, textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    font-size:14px;
+    font-family:inherit;
+    background:#fff;
+    color:var(--text);
+  }
+  textarea{ resize:vertical; min-height:70px; }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    border:none;
+    border-radius:10px;
+    padding:11px 16px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    background:var(--primary);
+    color:#fff;
+    width:100%;
+    margin-top:12px;
+  }
+  .btn:active{ background:var(--primary-dark); }
+  .btn.secondary{ background:#fff; color:var(--primary-dark); border:1px solid var(--primary); }
+  .btn.danger{ background:#fff; color:var(--danger); border:1px solid var(--danger); }
+  .btn.small{ width:auto; padding:7px 12px; font-size:12px; margin-top:0; }
+  .row{ display:flex; gap:8px; }
+  .row > *{ flex:1; }
+  .checklist-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px solid var(--border);
+    font-size:14px;
+  }
+  .checklist-item:last-child{ border-bottom:none; }
+  .checklist-item input[type=checkbox]{ width:19px; height:19px; accent-color:var(--primary); flex-shrink:0; }
+  .photo-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    margin-top:10px;
+  }
+  .photo-thumb{
+    position:relative;
+    aspect-ratio:1/1;
+    border-radius:8px;
+    overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .photo-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .photo-thumb button{
+    position:absolute; top:2px; right:2px;
+    background:rgba(0,0,0,0.55); color:#fff; border:none;
+    width:20px; height:20px; border-radius:50%; font-size:12px; cursor:pointer; line-height:1;
+  }
+  .upload-box{
+    border:2px dashed var(--border);
+    border-radius:10px;
+    padding:16px;
+    text-align:center;
+    color:var(--muted);
+    font-size:13px;
+    margin-top:8px;
+    cursor:pointer;
+  }
+  .prop-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    padding:10px 0;
+    border-bottom:1px solid var(--border);
+    gap:8px;
+  }
+  .prop-item:last-child{ border-bottom:none; }
+  .prop-item .name{ font-weight:700; font-size:14px; }
+  .prop-item .meta{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .prop-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .empty{ text-align:center; color:var(--muted); font-size:13px; padding:24px 0; }
+  .report-card{ cursor:pointer; }
+  .report-card .top{ display:flex; justify-content:space-between; align-items:center; }
+  .report-card .prop-name{ font-weight:700; font-size:14px; }
+  .report-card .date{ font-size:12px; color:var(--muted); }
+  .badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:20px;
+    margin-top:6px;
+  }
+  .badge.complete{ background:#e3f6ec; color:var(--ok); }
+  .badge.incomplete{ background:#fdece9; color:var(--danger); }
+  .filters{ display:flex; gap:8px; margin-bottom:12px; }
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,30,30,0.55);
+    display:none; align-items:flex-end; justify-content:center; z-index:50;
+  }
+  .modal-overlay.active{ display:flex; }
+  .modal{
+    background:#fff; width:100%; max-width:640px; max-height:88vh; overflow-y:auto;
+    border-radius:18px 18px 0 0; padding:20px;
+  }
+  .modal h3{ margin:0 0 4px; font-size:17px; }
+  .modal .sub{ font-size:12px; color:var(--muted); margin-bottom:14px; }
+  .close-modal{
+    float:right; background:none; border:none; font-size:20px; color:var(--muted); cursor:pointer;
+  }
+  .toast{
+    position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+    background:var(--text); color:#fff; padding:10px 18px; border-radius:20px;
+    font-size:13px; z-index:100; opacity:0; transition:opacity .25s;
+    pointer-events:none;
+  }
+  .toast.show{ opacity:1; }
+  .footer-tools{ display:flex; gap:8px; margin-top:14px; }
+  .footer-tools .btn{ margin-top:0; }
+  .checklist-summary{ font-size:12px; color:var(--muted); margin-top:6px; }
+  .required::after{ content:" *"; color:var(--danger); }
+  a.hidden-file{ display:none; }
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>🧹 おそうじ報告</h1>
+  <p>民泊清掃報告アプリ</p>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-view="view-report">清掃報告</button>
+  <button class="tab-btn" data-view="view-list">報告一覧</button>
+  <button class="tab-btn" data-view="view-props">物件管理</button>
+  <button class="tab-btn" data-view="view-settings">設定</button>
+</nav>
+
+<main>
+
+  <!-- 清掃報告フォーム -->
+  <section id="view-report" class="view active">
+    <div class="card">
+      <h2>清掃報告を送信</h2>
+      <form id="report-form">
+        <label class="required">物件</label>
+        <select id="r-property" required>
+          <option value="">物件を選択してください</option>
+        </select>
+
+        <div class="row">
+          <div>
+            <label class="required">担当者名</label>
+            <input type="text" id="r-staff" placeholder="例）山田 太郎" required>
+          </div>
+          <div>
+            <label class="required">清掃日</label>
+            <input type="date" id="r-date" required>
+          </div>
+        </div>
+
+        <div id="r-checklist-wrap" style="display:none;">
+          <label>清掃チェックリスト</label>
+          <div class="card" style="box-shadow:none;border:1px solid var(--border);padding:8px 12px;">
+            <div id="r-checklist"></div>
+          </div>
+        </div>
+
+        <label>写真をアップロード</label>
+        <div class="upload-box" id="upload-box">
+          📷 タップして写真を追加（清掃前後の様子など）
+        </div>
+        <input type="file" id="r-photos" accept="image/*" capture="environment" multiple style="display:none;">
+        <div class="photo-grid" id="photo-preview"></div>
+
+        <label>コメント・特記事項</label>
+        <textarea id="r-comment" placeholder="破損箇所、備品不足、次回への申し送りなど"></textarea>
+
+        <button type="submit" class="btn">✅ 報告を送信する</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 報告一覧 -->
+  <section id="view-list" class="view">
+    <div class="card">
+      <h2>清掃報告一覧</h2>
+      <div class="filters">
+        <select id="f-property"><option value="">すべての物件</option></select>
+        <input type="date" id="f-date">
+      </div>
+      <div id="reports-list"></div>
+      <div class="footer-tools">
+        <button class="btn secondary small" id="export-csv">📄 CSV書き出し</button>
+        <button class="btn secondary small" id="export-json">💾 バックアップ保存</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 物件管理 -->
+  <section id="view-props" class="view">
+    <div class="card">
+      <h2>物件を追加</h2>
+      <form id="prop-form">
+        <label class="required">物件名</label>
+        <input type="text" id="p-name" placeholder="例）〇〇マンション101号室" required>
+        <label>住所・メモ</label>
+        <input type="text" id="p-address" placeholder="任意">
+        <label>清掃チェックリスト項目（1行に1項目）</label>
+        <textarea id="p-checklist" placeholder="例）&#10;ベッドメイキング&#10;アメニティ補充&#10;ゴミ回収・分別&#10;水回り清掃・消毒&#10;忘れ物チェック"></textarea>
+        <button type="submit" class="btn">＋ 物件を追加</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>登録済み物件</h2>
+      <div id="prop-list"></div>
+      <div class="footer-tools">
+        <label class="btn secondary small" style="text-align:center;">
+          📂 データを復元
+          <input type="file" id="import-json" accept="application/json" style="display:none;">
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <!-- 設定・Google連携 -->
+  <section id="view-settings" class="view">
+    <div class="card">
+      <h2>Google Drive連携</h2>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 10px;">
+        連携すると、スプレッドシートから物件情報を取り込んだり、清掃写真を物件ごとのフォルダへ自動アップロードできます（任意機能・設定しなくてもアプリは使えます）。
+      </p>
+      <div id="google-status" style="font-size:13px;font-weight:700;margin-bottom:10px;">未接続</div>
+
+      <label>OAuth クライアントID</label>
+      <input type="text" id="g-client-id" placeholder="xxxxx.apps.googleusercontent.com">
+      <label>APIキー（スプレッドシート選択に使用）</label>
+      <input type="text" id="g-api-key" placeholder="AIza...">
+      <label>写真保存先フォルダ名（Drive内に自動作成されます）</label>
+      <input type="text" id="g-root-folder" placeholder="清掃報告写真">
+      <button class="btn secondary" id="g-save-settings">設定を保存</button>
+
+      <div class="row" style="margin-top:12px;">
+        <button class="btn" id="g-signin">🔑 Googleでログイン</button>
+        <button class="btn danger" id="g-signout" style="display:none;">ログアウト</button>
+      </div>
+
+      <button class="btn secondary" id="g-import-sheet" disabled>📋 スプレッドシートから物件情報を取り込む</button>
+    </div>
+
+    <div class="card">
+      <h2>はじめての設定手順</h2>
+      <ol style="font-size:13px;color:var(--muted);padding-left:18px;line-height:1.85;margin:0;">
+        <li><a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>で新しいプロジェクトを作成</li>
+        <li>「APIとサービス」→「ライブラリ」で <b>Google Drive API</b> と <b>Google Picker API</b> を有効化</li>
+        <li>「OAuth同意画面」で外部・Testingを選択し、アプリ名を入力。スタッフ全員のGoogleアカウントを「テストユーザー」として追加（審査不要で使えます）</li>
+        <li>「認証情報」→「認証情報を作成」→「OAuthクライアントID」（ウェブアプリケーション）を作成。このアプリを公開するURL（例：GitHub PagesのURLなど）を「承認済みのJavaScript生成元」に追加</li>
+        <li>同じ画面で「APIキー」も作成</li>
+        <li>発行されたクライアントIDとAPIキーを上の欄に貼り付けて保存</li>
+      </ol>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+        ※ このファイルはブラウザ内(localStorage)にデータを保存する単体HTMLです。スタッフ全員のスマホから使うにはGitHub PagesやNetlifyなどで公開してURLを共有してください。file://（ローカルファイルを直接開く形）ではGoogleログインは使えません。
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const STORAGE_KEY = "cleaningReportApp_v1";
+  const MAX_IMG_WIDTH = 1000;
+  const MAX_IMG_BYTES_TARGET = 220000; // ~jpeg quality target per photo
+
+  function loadData(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return { properties: [], reports: [] };
+      const parsed = JSON.parse(raw);
+      parsed.properties = parsed.properties || [];
+      parsed.reports = parsed.reports || [];
+      return parsed;
+    }catch(e){
+      console.error("データ読込エラー", e);
+      return { properties: [], reports: [] };
+    }
+  }
+  function saveData(data){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }catch(e){
+      alert("保存に失敗しました。写真の枚数やサイズを減らしてお試しください。");
+      console.error(e);
+    }
+  }
+
+  let data = loadData();
+  let pendingPhotos = []; // dataURLs for the report currently being filled in
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function fmtDate(d){
+    const dt = new Date(d);
+    if(isNaN(dt)) return d;
+    return dt.toLocaleDateString("ja-JP", {year:"numeric", month:"2-digit", day:"2-digit"});
+  }
+  function showToast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 1800);
+  }
+
+  // ---------- Tab navigation ----------
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  tabButtons.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      tabButtons.forEach(b=>b.classList.remove("active"));
+      document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(btn.dataset.view).classList.add("active");
+      if(btn.dataset.view === "view-list") renderReportsList();
+      if(btn.dataset.view === "view-props") renderPropList();
+      if(btn.dataset.view === "view-report") refreshPropertySelects();
+    });
+  });
+
+  // ---------- Property management ----------
+  function refreshPropertySelects(){
+    const sel = document.getElementById("r-property");
+    const fsel = document.getElementById("f-property");
+    const currentR = sel.value, currentF = fsel.value;
+    sel.innerHTML = '<option value="">物件を選択してください</option>';
+    fsel.innerHTML = '<option value="">すべての物件</option>';
+    data.properties.forEach(p=>{
+      const o1 = document.createElement("option");
+      o1.value = p.id; o1.textContent = p.name;
+      sel.appendChild(o1);
+      const o2 = document.createElement("option");
+      o2.value = p.id; o2.textContent = p.name;
+      fsel.appendChild(o2);
+    });
+    if(data.properties.some(p=>p.id===currentR)) sel.value = currentR;
+    if(data.properties.some(p=>p.id===currentF)) fsel.value = currentF;
+    renderChecklistForSelectedProperty();
+  }
+
+  function renderPropList(){
+    const wrap = document.getElementById("prop-list");
+    if(data.properties.length === 0){
+      wrap.innerHTML = '<div class="empty">まだ物件が登録されていません</div>';
+      return;
+    }
+    wrap.innerHTML = "";
+    data.properties.forEach(p=>{
+      const div = document.createElement("div");
+      div.className = "prop-item";
+      const itemCount = (p.checklist||[]).length;
+      div.innerHTML = `
+        <div>
+          <div class="name">${escapeHtml(p.name)}</div>
+          <div class="meta">${escapeHtml(p.address||"")}${p.address? " ・ ":""}チェック項目 ${itemCount}件</div>
+        </div>
+        <div class="prop-actions">
+          <button class="btn danger small" data-del="${p.id}">削除</button>
+        </div>`;
+      wrap.appendChild(div);
+    });
+    wrap.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        if(confirm("この物件を削除しますか？（過去の報告は残ります）")){
+          data.properties = data.properties.filter(p=>p.id !== btn.dataset.del);
+          saveData(data);
+          renderPropList();
+          refreshPropertySelects();
+        }
+      });
+    });
+  }
+
+  document.getElementById("prop-form").addEventListener("submit", e=>{
+    e.preventDefault();
+    const name = document.getElementById("p-name").value.trim();
+    const address = document.getElementById("p-address").value.trim();
+    const checklistRaw = document.getElementById("p-checklist").value.trim();
+    const checklist = checklistRaw.split("\n").map(s=>s.trim()).filter(Boolean);
+    if(!name){ showToast("物件名を入力してください"); return; }
+    data.properties.push({ id: uid(), name, address, checklist });
+    saveData(data);
+    e.target.reset();
+    renderPropList();
+    refreshPropertySelects();
+    showToast("物件を追加しました");
+  });
+
+  // ---------- Report form ----------
+  document.getElementById("r-property").addEventListener("change", renderChecklistForSelectedProperty);
+
+  function renderChecklistForSelectedProperty(){
+    const propId = document.getElementById("r-property").value;
+    const wrap = document.getElementById("r-checklist-wrap");
+    const listEl = document.getElementById("r-checklist");
+    const prop = data.properties.find(p=>p.id===propId);
+    listEl.innerHTML = "";
+    if(!prop || !prop.checklist || prop.checklist.length===0){
+      wrap.style.display = "none";
+      return;
+    }
+    wrap.style.display = "block";
+    prop.checklist.forEach((item, idx)=>{
+      const row = document.createElement("label");
+      row.className = "checklist-item";
+      row.innerHTML = `<input type="checkbox" data-idx="${idx}"> <span>${escapeHtml(item)}</span>`;
+      listEl.appendChild(row);
+    });
+  }
+
+  document.getElementById("r-date").value = todayStr();
+
+  document.getElementById("upload-box").addEventListener("click", ()=>{
+    document.getElementById("r-photos").click();
+  });
+
+  document.getElementById("r-photos").addEventListener("change", async (e)=>{
+    const files = Array.from(e.target.files || []);
+    for(const file of files){
+      try{
+        const dataUrl = await resizeImage(file, MAX_IMG_WIDTH);
+        pendingPhotos.push(dataUrl);
+      }catch(err){ console.error(err); }
+    }
+    renderPhotoPreview();
+    e.target.value = "";
+  });
+
+  function renderPhotoPreview(){
+    const grid = document.getElementById("photo-preview");
+    grid.innerHTML = "";
+    pendingPhotos.forEach((src, i)=>{
+      const div = document.createElement("div");
+      div.className = "photo-thumb";
+      div.innerHTML = `<img src="${src}"><button type="button" data-i="${i}">×</button>`;
+      grid.appendChild(div);
+    });
+    grid.querySelectorAll("button[data-i]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        pendingPhotos.splice(Number(btn.dataset.i),1);
+        renderPhotoPreview();
+      });
+    });
+  }
+
+  function resizeImage(file, maxWidth){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = (ev)=>{
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = ()=>{
+          let { width, height } = img;
+          if(width > maxWidth){
+            height = Math.round(height * (maxWidth/width));
+            width = maxWidth;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.72));
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById("report-form").addEventListener("submit", e=>{
+    e.preventDefault();
+    const propId = document.getElementById("r-property").value;
+    const staff = document.getElementById("r-staff").value.trim();
+    const date = document.getElementById("r-date").value;
+    const comment = document.getElementById("r-comment").value.trim();
+    const prop = data.properties.find(p=>p.id===propId);
+
+    if(!propId || !staff || !date){
+      showToast("必須項目（物件・担当者名・清掃日）を入力してください");
+      return;
+    }
+
+    const checklistState = {};
+    document.querySelectorAll("#r-checklist input[type=checkbox]").forEach(cb=>{
+      checklistState[cb.dataset.idx] = cb.checked;
+    });
+
+    const report = {
+      id: uid(),
+      propertyId: propId,
+      propertyName: prop ? prop.name : "(削除済み物件)",
+      checklistLabels: prop ? (prop.checklist||[]) : [],
+      staffName: staff,
+      date,
+      comment,
+      photos: pendingPhotos.slice(),
+      checklistState,
+      createdAt: new Date().toISOString()
+    };
+    data.reports.push(report);
+    saveData(data);
+
+    e.target.reset();
+    document.getElementById("r-date").value = todayStr();
+    pendingPhotos = [];
+    renderPhotoPreview();
+    renderChecklistForSelectedProperty();
+
+    if(accessToken && report.photos.length > 0){
+      showToast("清掃報告を送信しました ✅（Driveへアップロード中…）");
+      syncReportPhotosToDrive(report).then(()=>{
+        showToast(report.driveSynced ? "Driveへの保存が完了しました ☁️" : "Driveへのアップロードに失敗しました");
+      });
+    }else{
+      showToast("清掃報告を送信しました ✅");
+    }
+  });
+
+  // ---------- Reports list ----------
+  function checklistCompletion(report){
+    const total = (report.checklistLabels||[]).length;
+    if(total === 0) return null;
+    const done = Object.values(report.checklistState||{}).filter(Boolean).length;
+    return { done, total };
+  }
+
+  function renderReportsList(){
+    refreshPropertySelects();
+    const wrap = document.getElementById("reports-list");
+    const fProp = document.getElementById("f-property").value;
+    const fDate = document.getElementById("f-date").value;
+
+    let list = data.reports.slice().sort((a,b)=> new Date(b.date+"T"+ (b.createdAt||"")) - new Date(a.date+"T"+(a.createdAt||"")));
+    if(fProp) list = list.filter(r=>r.propertyId === fProp);
+    if(fDate) list = list.filter(r=>r.date === fDate);
+
+    if(list.length === 0){
+      wrap.innerHTML = '<div class="empty">該当する報告がありません</div>';
+      return;
+    }
+    wrap.innerHTML = "";
+    list.forEach(r=>{
+      const comp = checklistCompletion(r);
+      const div = document.createElement("div");
+      div.className = "card report-card";
+      div.style.boxShadow = "none";
+      div.style.border = "1px solid var(--border)";
+      let badge = "";
+      if(comp) badge = `<span class="badge ${comp.done===comp.total?"complete":"incomplete"}">チェック ${comp.done}/${comp.total}</span>`;
+      let driveBadge = "";
+      if(r.photos.length > 0){
+        driveBadge = r.driveSynced
+          ? `<span class="badge complete">☁️ Drive保存済み</span>`
+          : `<span class="badge incomplete">☁️ 未アップロード</span>`;
+      }
+      div.innerHTML = `
+        <div class="top">
+          <div class="prop-name">${escapeHtml(r.propertyName)}</div>
+          <div class="date">${fmtDate(r.date)}</div>
+        </div>
+        <div class="meta" style="font-size:12px;color:var(--muted);margin-top:4px;">担当: ${escapeHtml(r.staffName)} ・ 写真 ${r.photos.length}枚</div>
+        ${badge} ${driveBadge}
+      `;
+      div.addEventListener("click", ()=>openReportModal(r.id));
+      wrap.appendChild(div);
+    });
+  }
+  document.getElementById("f-property").addEventListener("change", renderReportsList);
+  document.getElementById("f-date").addEventListener("change", renderReportsList);
+
+  function openReportModal(reportId){
+    const r = data.reports.find(x=>x.id===reportId);
+    if(!r) return;
+    const overlay = document.getElementById("modal-overlay");
+    const body = document.getElementById("modal-body");
+    const checklistHtml = (r.checklistLabels||[]).map((label, idx)=>{
+      const checked = r.checklistState && r.checklistState[idx];
+      return `<div class="checklist-item"><span>${checked? "✅":"⬜️"}</span><span>${escapeHtml(label)}</span></div>`;
+    }).join("");
+    const photosHtml = r.photos.map(src=>`<div class="photo-thumb"><img src="${src}"></div>`).join("");
+    const needsDriveRetry = r.photos.length > 0 && !r.driveSynced;
+    body.innerHTML = `
+      <button class="close-modal" id="close-modal">×</button>
+      <h3>${escapeHtml(r.propertyName)}</h3>
+      <div class="sub">${fmtDate(r.date)} ・ 担当: ${escapeHtml(r.staffName)}</div>
+      ${checklistHtml ? `<label>チェックリスト</label><div class="card" style="box-shadow:none;border:1px solid var(--border);">${checklistHtml}</div>` : ""}
+      ${r.comment ? `<label>コメント</label><div class="card" style="box-shadow:none;border:1px solid var(--border);font-size:13px;">${escapeHtml(r.comment)}</div>` : ""}
+      ${photosHtml ? `<label>写真</label><div class="photo-grid">${photosHtml}</div>` : ""}
+      ${r.driveError ? `<div class="meta" style="color:var(--danger);font-size:12px;margin-top:8px;">Driveエラー: ${escapeHtml(r.driveError)}</div>` : ""}
+      ${needsDriveRetry ? `<button class="btn secondary" id="retry-drive-upload">☁️ Driveへアップロードする</button>` : ""}
+      <button class="btn danger" id="delete-report">この報告を削除</button>
+    `;
+    overlay.classList.add("active");
+    document.getElementById("close-modal").addEventListener("click", ()=>overlay.classList.remove("active"));
+    document.getElementById("delete-report").addEventListener("click", ()=>{
+      if(confirm("この報告を削除しますか？")){
+        data.reports = data.reports.filter(x=>x.id!==reportId);
+        saveData(data);
+        overlay.classList.remove("active");
+        renderReportsList();
+      }
+    });
+    const retryBtn = document.getElementById("retry-drive-upload");
+    if(retryBtn){
+      retryBtn.addEventListener("click", async ()=>{
+        if(!accessToken){ showToast("先にGoogleでログインしてください（設定タブ）"); return; }
+        retryBtn.disabled = true;
+        retryBtn.textContent = "アップロード中...";
+        await syncReportPhotosToDrive(r);
+        openReportModal(reportId);
+        renderReportsList();
+      });
+    }
+  }
+  document.getElementById("modal-overlay").addEventListener("click", (e)=>{
+    if(e.target.id === "modal-overlay") e.target.classList.remove("active");
+  });
+
+  // ---------- Export / Import ----------
+  document.getElementById("export-json").addEventListener("click", ()=>{
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    downloadBlob(blob, `cleaning-report-backup-${todayStr()}.json`);
+  });
+
+  document.getElementById("import-json").addEventListener("change", (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      try{
+        const imported = JSON.parse(ev.target.result);
+        if(!imported.properties || !imported.reports) throw new Error("不正な形式です");
+        if(confirm("現在のデータを上書きして復元しますか？")){
+          data = { properties: imported.properties, reports: imported.reports };
+          saveData(data);
+          renderPropList();
+          refreshPropertySelects();
+          showToast("データを復元しました");
+        }
+      }catch(err){
+        alert("読み込みに失敗しました: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  document.getElementById("export-csv").addEventListener("click", ()=>{
+    if(data.reports.length===0){ showToast("報告データがありません"); return; }
+    const rows = [["物件名","清掃日","担当者","チェック完了数","チェック項目数","コメント","写真枚数"]];
+    data.reports.forEach(r=>{
+      const comp = checklistCompletion(r);
+      rows.push([
+        r.propertyName, r.date, r.staffName,
+        comp?comp.done:"", comp?comp.total:"",
+        (r.comment||"").replace(/\n/g," "), r.photos.length
+      ]);
+    });
+    const csv = rows.map(row=>row.map(csvEscape).join(",")).join("\r\n");
+    const blob = new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8;"});
+    downloadBlob(blob, `cleaning-reports-${todayStr()}.csv`);
+  });
+
+  function csvEscape(val){
+    const s = String(val ?? "");
+    if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function escapeHtml(str){
+    return String(str ?? "").replace(/[&<>"']/g, m=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[m]));
+  }
+
+  // ---------- Google Drive integration ----------
+  const GOOGLE_STORAGE_KEY = "cleaningReportApp_google";
+  const GOOGLE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+  let googleSettings = loadGoogleSettings();
+  let accessToken = null;
+  let tokenClient = null;
+  let pickerApiLoaded = false;
+
+  function loadGoogleSettings(){
+    try{ return JSON.parse(localStorage.getItem(GOOGLE_STORAGE_KEY) || "{}"); }
+    catch(e){ return {}; }
+  }
+  function saveGoogleSettings(s){
+    localStorage.setItem(GOOGLE_STORAGE_KEY, JSON.stringify(s));
+  }
+
+  function initGoogleSettingsUI(){
+    document.getElementById("g-client-id").value = googleSettings.clientId || "";
+    document.getElementById("g-api-key").value = googleSettings.apiKey || "";
+    document.getElementById("g-root-folder").value = googleSettings.rootFolder || "清掃報告写真";
+    updateGoogleStatusUI();
+  }
+
+  document.getElementById("g-save-settings").addEventListener("click", ()=>{
+    googleSettings.clientId = document.getElementById("g-client-id").value.trim();
+    googleSettings.apiKey = document.getElementById("g-api-key").value.trim();
+    googleSettings.rootFolder = document.getElementById("g-root-folder").value.trim() || "清掃報告写真";
+    saveGoogleSettings(googleSettings);
+    showToast("設定を保存しました");
+    setupTokenClient();
+  });
+
+  function ensureGisLoaded(){
+    return new Promise((resolve, reject)=>{
+      let tries = 0;
+      (function check(){
+        if(typeof google !== "undefined" && google.accounts && google.accounts.oauth2) resolve();
+        else if(tries++ < 30) setTimeout(check, 250);
+        else reject(new Error("Googleログインライブラリの読み込みに失敗しました。通信環境をご確認のうえ再度お試しください。"));
+      })();
+    });
+  }
+
+  function ensurePickerLoaded(){
+    return new Promise((resolve, reject)=>{
+      let tries = 0;
+      (function check(){
+        if(typeof gapi !== "undefined"){
+          if(pickerApiLoaded) return resolve();
+          gapi.load("picker", ()=>{ pickerApiLoaded = true; resolve(); });
+        }else if(tries++ < 30){
+          setTimeout(check, 250);
+        }else{
+          reject(new Error("Google APIライブラリの読み込みに失敗しました。通信環境をご確認のうえ再度お試しください。"));
+        }
+      })();
+    });
+  }
+
+  function setupTokenClient(){
+    if(!googleSettings.clientId || typeof google === "undefined" || !google.accounts) return;
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: googleSettings.clientId,
+      scope: GOOGLE_SCOPE,
+      callback: (resp)=>{
+        if(resp.error){ showToast("ログインに失敗しました"); return; }
+        accessToken = resp.access_token;
+        updateGoogleStatusUI();
+        showToast("Googleにログインしました");
+      }
+    });
+  }
+
+  document.getElementById("g-signin").addEventListener("click", async ()=>{
+    if(!googleSettings.clientId){ showToast("先にクライアントIDを保存してください"); return; }
+    try{
+      await ensureGisLoaded();
+      if(!tokenClient) setupTokenClient();
+      tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
+    }catch(err){ alert(err.message); }
+  });
+
+  document.getElementById("g-signout").addEventListener("click", ()=>{
+    if(accessToken && typeof google !== "undefined" && google.accounts && google.accounts.oauth2){
+      google.accounts.oauth2.revoke(accessToken, ()=>{});
+    }
+    accessToken = null;
+    updateGoogleStatusUI();
+    showToast("ログアウトしました");
+  });
+
+  function updateGoogleStatusUI(){
+    const statusEl = document.getElementById("google-status");
+    const signinBtn = document.getElementById("g-signin");
+    const signoutBtn = document.getElementById("g-signout");
+    const importBtn = document.getElementById("g-import-sheet");
+    if(accessToken){
+      statusEl.textContent = "✅ Googleに接続済み";
+      statusEl.style.color = "var(--ok)";
+      signinBtn.style.display = "none";
+      signoutBtn.style.display = "";
+      importBtn.disabled = false;
+    }else{
+      statusEl.textContent = "未接続";
+      statusEl.style.color = "var(--muted)";
+      signinBtn.style.display = "";
+      signoutBtn.style.display = "none";
+      importBtn.disabled = true;
+    }
+  }
+
+  // ---- Spreadsheet import via Google Picker ----
+  document.getElementById("g-import-sheet").addEventListener("click", async ()=>{
+    if(!accessToken){ showToast("先にGoogleでログインしてください"); return; }
+    if(!googleSettings.apiKey){ showToast("APIキーを保存してください"); return; }
+    try{
+      await ensurePickerLoaded();
+      const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setMimeTypes("application/vnd.google-apps.spreadsheet");
+      const picker = new google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(accessToken)
+        .setDeveloperKey(googleSettings.apiKey)
+        .setCallback(onSheetPicked)
+        .build();
+      picker.setVisible(true);
+    }catch(err){ alert(err.message); }
+  });
+
+  async function onSheetPicked(pickerData){
+    if(pickerData.action !== google.picker.Action.PICKED) return;
+    const fileId = pickerData.docs[0].id;
+    try{
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/csv`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if(!res.ok) throw new Error("読み込みに失敗しました (" + res.status + ")");
+      const text = await res.text();
+      const rows = parseCSV(text);
+      importPropertiesFromRows(rows);
+    }catch(err){
+      alert("スプレッドシートの読み込みに失敗しました: " + err.message);
+    }
+  }
+
+  function parseCSV(text){
+    const rows = [];
+    let row = [], field = "", inQuotes = false;
+    for(let i=0;i<text.length;i++){
+      const c = text[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(text[i+1] === '"'){ field += '"'; i++; }
+          else inQuotes = false;
+        }else field += c;
+      }else{
+        if(c === '"') inQuotes = true;
+        else if(c === ','){ row.push(field); field = ""; }
+        else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ""; }
+        else if(c === '\r'){ /* skip */ }
+        else field += c;
+      }
+    }
+    if(field.length || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(r=> r.some(f=>f.trim() !== ""));
+  }
+
+  function importPropertiesFromRows(rows){
+    if(rows.length < 2){ showToast("データが見つかりませんでした"); return; }
+    const header = rows[0].map(h=>h.trim());
+    const idxName = header.findIndex(h=>/物件名|name/i.test(h));
+    const idxAddr = header.findIndex(h=>/住所|address/i.test(h));
+    const idxChecklist = header.findIndex(h=>/チェック|checklist/i.test(h));
+    if(idxName === -1){
+      alert("「物件名」列が見つかりませんでした。1行目に見出し（物件名／住所／チェックリスト）を入れてください。");
+      return;
+    }
+    let added = 0, updated = 0;
+    rows.slice(1).forEach(cols=>{
+      const name = (cols[idxName]||"").trim();
+      if(!name) return;
+      const address = idxAddr>=0 ? (cols[idxAddr]||"").trim() : "";
+      const checklistRaw = idxChecklist>=0 ? (cols[idxChecklist]||"") : "";
+      const checklist = checklistRaw.split(/\n|;|、/).map(s=>s.trim()).filter(Boolean);
+      const existing = data.properties.find(p=>p.name === name);
+      if(existing){
+        existing.address = address || existing.address;
+        if(checklist.length) existing.checklist = checklist;
+        updated++;
+      }else{
+        data.properties.push({ id: uid(), name, address, checklist });
+        added++;
+      }
+    });
+    saveData(data);
+    renderPropList();
+    refreshPropertySelects();
+    showToast(`取込完了：新規${added}件 ・ 更新${updated}件`);
+  }
+
+  // ---- Drive folder lookup + photo upload ----
+  async function driveApiFetch(url, options={}){
+    const res = await fetch(url, {
+      ...options,
+      headers: { ...(options.headers||{}), Authorization: `Bearer ${accessToken}` }
+    });
+    if(!res.ok){
+      const errText = await res.text().catch(()=> "");
+      throw new Error(`Drive APIエラー ${res.status}: ${errText.slice(0,200)}`);
+    }
+    return res.json();
+  }
+
+  async function findOrCreateFolder(name, parentId){
+    const safeName = name.replace(/'/g, "\\'");
+    const parentClause = parentId ? `'${parentId}' in parents` : `'root' in parents`;
+    const q = encodeURIComponent(`name='${safeName}' and mimeType='application/vnd.google-apps.folder' and trashed=false and ${parentClause}`);
+    const listRes = await driveApiFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
+    if(listRes.files && listRes.files.length > 0) return listRes.files[0].id;
+    const createRes = await driveApiFetch("https://www.googleapis.com/drive/v3/files", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: parentId ? [parentId] : undefined
+      })
+    });
+    return createRes.id;
+  }
+
+  async function getPropertyFolderId(propertyName){
+    const rootName = googleSettings.rootFolder || "清掃報告写真";
+    if(!googleSettings.folderIds) googleSettings.folderIds = {};
+    if(!googleSettings.folderIds._root){
+      googleSettings.folderIds._root = await findOrCreateFolder(rootName, null);
+      saveGoogleSettings(googleSettings);
+    }
+    const rootId = googleSettings.folderIds._root;
+    if(!googleSettings.folderIds[propertyName]){
+      googleSettings.folderIds[propertyName] = await findOrCreateFolder(propertyName, rootId);
+      saveGoogleSettings(googleSettings);
+    }
+    return googleSettings.folderIds[propertyName];
+  }
+
+  function dataUrlToBlob(dataUrl){
+    const [meta, b64] = dataUrl.split(",");
+    const mime = meta.match(/data:(.*);base64/)[1];
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
+  async function uploadPhotoToDrive(dataUrl, filename, folderId){
+    const blob = dataUrlToBlob(dataUrl);
+    const metadata = { name: filename, parents: [folderId] };
+    const boundary = "-------cleaningapp" + uid();
+    const metaPart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`;
+    const mediaHeader = `--${boundary}\r\nContent-Type: ${blob.type}\r\n\r\n`;
+    const closeDelim = `\r\n--${boundary}--`;
+    const multipartBody = new Blob([metaPart, mediaHeader, blob, closeDelim]);
+    const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": `multipart/related; boundary=${boundary}`
+      },
+      body: multipartBody
+    });
+    if(!res.ok) throw new Error("アップロード失敗 (" + res.status + ")");
+    return res.json();
+  }
+
+  async function syncReportPhotosToDrive(report){
+    if(!accessToken){ report.driveSynced = false; return; }
+    try{
+      const folderId = await getPropertyFolderId(report.propertyName);
+      const links = [];
+      for(let i=0;i<report.photos.length;i++){
+        const filename = `${report.date}_${report.staffName}_${i+1}.jpg`;
+        const uploaded = await uploadPhotoToDrive(report.photos[i], filename, folderId);
+        links.push(uploaded.webViewLink || "");
+      }
+      report.driveSynced = true;
+      report.driveLinks = links;
+      report.driveError = null;
+    }catch(err){
+      report.driveSynced = false;
+      report.driveError = err.message;
+    }
+    saveData(data);
+  }
+
+  // ---------- Seed sample data on first run ----------
+  if(data.properties.length === 0 && data.reports.length === 0){
+    data.properties.push({
+      id: uid(),
+      name: "サンプル物件（〇〇マンション101）",
+      address: "東京都渋谷区〇〇1-2-3",
+      checklist: ["ベッドメイキング","アメニティ補充","ゴミ回収・分別","水回り清掃・消毒","忘れ物チェック","換気・消臭"]
+    });
+    saveData(data);
+  }
+
+  // ---------- Init ----------
+  refreshPropertySelects();
+  renderPropList();
+  initGoogleSettingsUI();
+  setTimeout(setupTokenClient, 800); // give the async GIS script a moment to load
+})();
+</script>
+
+</body>
+</html>
