@@ -271,11 +271,11 @@
           </div>
         </div>
 
-        <label>写真をアップロード</label>
-        <div class="upload-box" id="upload-box">
+        <label class="field-label">写真をアップロード</label>
+        <label class="upload-box" for="r-photos" id="upload-box">
           📷 タップして写真を追加（清掃前後の様子など）
-        </div>
-        <input type="file" id="r-photos" accept="image/*" multiple style="display:none;">
+        </label>
+        <input type="file" id="r-photos" accept="image/*" multiple style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
         <div class="photo-grid" id="photo-preview"></div>
 
         <label>コメント・特記事項</label>
@@ -529,10 +529,6 @@
   }
 
   document.getElementById("r-date").value = todayStr();
-
-  document.getElementById("upload-box").addEventListener("click", ()=>{
-    document.getElementById("r-photos").click();
-  });
 
   document.getElementById("r-photos").addEventListener("change", async (e)=>{
     const files = Array.from(e.target.files || []);
