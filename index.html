@@ -319,11 +319,14 @@
     <div class="card">
       <h2>登録済み物件</h2>
       <div id="prop-list"></div>
-      <div class="footer-tools">
+      <div class="footer-tools" style="flex-direction:column;align-items:stretch;">
         <label class="btn secondary small" style="text-align:center;">
-          📂 データを復元
+          📂 バックアップを取り込む
           <input type="file" id="import-json" accept="application/json" style="display:none;">
         </label>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 0;">
+          他のスタッフの端末で「報告一覧」タブから書き出した バックアップ(.json) を選ぶと、今のデータに追加で取り込めます（上書きしたい場合は選択できます）。これを使えば、各スタッフの報告をこの端末に集めて確認できます。
+        </p>
       </div>
     </div>
   </section>
@@ -747,12 +750,43 @@
       try{
         const imported = JSON.parse(ev.target.result);
         if(!imported.properties || !imported.reports) throw new Error("不正な形式です");
-        if(confirm("現在のデータを上書きして復元しますか？")){
+
+        const wantsMerge = confirm(
+          "このバックアップを今のデータに追加しますか？\n" +
+          "「OK」= 追加で取り込む（他のスタッフのバックアップも順に取り込めます）\n" +
+          "「キャンセル」= 全部上書きする（今のデータは消えます）"
+        );
+
+        if(wantsMerge){
+          let addedReports = 0, skippedReports = 0, addedProps = 0, updatedProps = 0;
+          (imported.reports || []).forEach(r=>{
+            if(data.reports.some(existing=>existing.id === r.id)){ skippedReports++; return; }
+            data.reports.push(r);
+            addedReports++;
+          });
+          (imported.properties || []).forEach(p=>{
+            const existing = data.properties.find(x=>x.name === p.name);
+            if(existing){
+              if((p.checklist||[]).length) existing.checklist = p.checklist;
+              if(p.address) existing.address = p.address;
+              updatedProps++;
+            }else{
+              data.properties.push(p);
+              addedProps++;
+            }
+          });
+          saveData(data);
+          renderPropList();
+          refreshPropertySelects();
+          renderReportsList();
+          showToast(`取り込み完了：報告${addedReports}件追加（重複${skippedReports}件はスキップ）・物件${addedProps}件追加`);
+        }else if(confirm("本当に今のデータを全て消して、このバックアップだけに置き換えますか？（元に戻せません）")){
           data = { properties: imported.properties, reports: imported.reports };
           saveData(data);
           renderPropList();
           refreshPropertySelects();
-          showToast("データを復元しました");
+          renderReportsList();
+          showToast("データを上書きしました");
         }
       }catch(err){
         alert("読み込みに失敗しました: " + err.message);
